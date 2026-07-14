@@ -1,0 +1,34 @@
+name: Lower League Scout (daily)
+
+on:
+  schedule:
+    # 11:00 UTC = 7:00 AM ET during EDT. Adjust to 12:00 UTC for EST months.
+    - cron: "0 11 * * *"
+  workflow_dispatch: {} # manual "Scout" button in the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run Lower League Scout
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/run-scout.mjs
+
+      - name: Commit briefing + signals
+        run: |
+          git config user.name "lower-league-scout"
+          git config user.email "scout@frontierfootball.bot"
+          git add content/briefings data/signals
+          git diff --cached --quiet && echo "Nothing new." && exit 0
+          git commit -m "Scout: daily briefing $(date -u +%F)"
+          git push
